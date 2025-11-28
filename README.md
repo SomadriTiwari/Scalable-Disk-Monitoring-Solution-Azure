@@ -2,6 +2,8 @@
 A reusable, multi‑subscription, enterprise‑grade disk monitoring solution for **Azure Windows Virtual Machines**, fully automated using **Terraform + Ansible**.
 
 
+
+
 This project enables **centralized disk utilization monitoring** for any organization while ensuring:
 - ✔ Multi‑subscription scalability
 - ✔ Secure onboarding using Managed Identity
