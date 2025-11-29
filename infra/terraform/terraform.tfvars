@@ -1,13 +1,19 @@
-# subscription_id = "00000000-0000-0000-0000-000000000000"
-# resource_group_name = "rg-hub-monitoring"
-# location = "eastus"
+# ------------------------------------------------------------
+# REQUIRED
+# ------------------------------------------------------------
+# subscription_id      = "<your-subscription-id>"
+# resource_group_name  = "rg-disk-monitoring"
+# location             = "eastus"
 
+# hub_vnet_id          = "/subscriptions/<id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/vnet-hub"
+# hub_subnet_id        = "/subscriptions/<id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/vnet-hub/subnets/snet-monitoring"
 
-# hub_vnet_id = "/subscriptions/.../virtualNetworks/vnet-hub"
-# hub_subnet_id = "/subscriptions/.../subnets/snet-monitor"
+# alert_email          = "alerts@example.com"
 
-
-# name_prefix = "diskmon"
-# alert_email = "alerts@example.com"
+# # ------------------------------------------------------------
+# # OPTIONAL / INPUT PARAMETERS
+# # ------------------------------------------------------------
+# name_prefix           = "diskmon"
+# environment           = "prod"
 # disk_threshold_percent = 10
-# law_retention_days = 30
+# law_retention_days     = 30
