@@ -91,8 +91,8 @@ Scalable-Disk-Monitoring-Solution-Azure/
 │   └── linux/disk_metrics.sh
 |    
 │
-├── policy/
-│   └── ama_dcr_autoonboarding.json
+├── workbooks/
+│   └── disk-monitor-workbook.json
 │
 └── .github/workflows/ci-cd.yml
 ```
