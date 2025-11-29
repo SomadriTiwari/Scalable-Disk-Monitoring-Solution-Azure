@@ -1,0 +1,66 @@
+{
+  "properties": {
+    "displayName": "Deploy AMA and associate to Disk DCR when tagged",
+    "mode": "Indexed",
+    "description": "Automatically deploy Azure Monitor Agent and associate VM to a Data Collection Rule when diskMonitoring=enabled.",
+    "metadata": {
+      "category": "Monitoring"
+    },
+    "parameters": {
+      "dcrResourceId": {
+        "type": "String",
+        "metadata": {
+          "description": "Resource ID of the Data Collection Rule for disk metrics.",
+          "displayName": "Disk DCR Resource ID"
+        }
+      }
+    },
+    "policyRule": {
+      "if": {
+        "allOf": [
+          {
+            "field": "type",
+            "equals": "Microsoft.Compute/virtualMachines"
+          },
+          {
+            "field": "tags['diskMonitoring']",
+            "equals": "enabled"
+          }
+        ]
+      },
+      "then": {
+        "effect": "deployIfNotExists",
+        "details": {
+          "type": "Microsoft.Insights/dataCollectionRuleAssociations",
+          "roleDefinitionIds": [
+            "/providers/microsoft.authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"  
+          ],
+          "deploymentScope": "resource",
+          "existenceCondition": {
+            "field": "Microsoft.Insights/dataCollectionRuleAssociations/dataCollectionRuleId",
+            "equals": "[parameters('dcrResourceId')]"
+          },
+          "deployment": {
+            "properties": {
+              "mode": "incremental",
+              "template": {
+                "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                "contentVersion": "1.0.0.0",
+                "resources": [
+                  {
+                    "type": "Microsoft.Insights/dataCollectionRuleAssociations",
+                    "apiVersion": "2021-09-01",
+                    "name": "[concat(field('name'), '/disk-dcr-assoc')]",
+                    "properties": {
+                      "dataCollectionRuleId": "[parameters('dcrResourceId')]"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
