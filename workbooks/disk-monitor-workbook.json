@@ -1,0 +1,46 @@
+# =============================
+# 📊 Azure Monitor Workbook – Disk Monitoring
+# =============================
+
+This workbook shows:
+- Top VMs by low free disk percentage
+- Trend over time of disk usage
+
+
+{
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json",
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 3,
+      "name": "text-block",
+      "content": {
+        "json": "## Azure Disk Monitoring Dashboard\nShows VMs with low free disk and historical trends."
+      }
+    },
+    {
+      "type": 9,
+      "name": "Low Disk Space Table",
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "InsightsMetrics\n| where Namespace == 'LogicalDisk'\n| where Name == 'Free Space Percentage'\n| summarize MinFreePct = min(Val) by Computer, bin(TimeGenerated, 1h)\n| where MinFreePct < 20\n| order by MinFreePct asc",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      }
+    },
+    {
+      "type": 9,
+      "name": "Disk Trend",
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "InsightsMetrics\n| where Namespace == 'LogicalDisk'\n| where Name == 'Free Space Percentage'\n| summarize avg(Val) by bin(TimeGenerated, 1h)\n| order by TimeGenerated asc",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "timechart"
+      }
+    }
+  ],
+  "fallbackResourceIds": [
+    "{WorkspaceResourceId}"
+  ]
+}
