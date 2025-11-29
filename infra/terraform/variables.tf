@@ -1,54 +1,61 @@
-variable "subscription_id" {
-description = "Subscription hosting monitoring resources"
-type = string
-}
+##############################################################
+# REQUIRED VARIABLES
+##############################################################
 
+variable "subscription_id" {
+  description = "Azure Subscription ID where the monitoring stack is deployed."
+  type        = string
+}
 
 variable "resource_group_name" {
-description = "Monitoring resource group"
-type = string
+  description = "Resource Group where monitoring resources (LAW, AMPLS, DCR, PE) will be deployed."
+  type        = string
 }
-
 
 variable "location" {
-description = "Region for monitoring resources"
-type = string
+  description = "Azure region for deployment (e.g. eastus, centralindia)."
+  type        = string
 }
-
 
 variable "hub_vnet_id" {
-description = "VNet used for private DNS zone link"
-type = string
+  description = "Resource ID of the Hub Virtual Network used for private endpoint DNS linking."
+  type        = string
 }
-
 
 variable "hub_subnet_id" {
-description = "Subnet where Private Endpoint will be deployed"
-type = string
+  description = "Resource ID of the Hub Subnet where the Azure Monitor Private Endpoint will be created."
+  type        = string
 }
-
-
-variable "name_prefix" {
-type = string
-default = "diskmon"
-}
-
 
 variable "alert_email" {
-description = "Email for action group alerts"
-type = string
+  description = "Email address to receive low disk alerts."
+  type        = string
 }
 
+##############################################################
+# OPTIONAL / PARAMETERIZED VARIABLES
+##############################################################
+
+variable "name_prefix" {
+  description = "Prefix added to all resource names for consistency."
+  type        = string
+  default     = "diskmon"
+}
+
+variable "environment" {
+  description = "Environment label (e.g., dev, uat, prod). Used for tagging."
+  type        = string
+  default     = "prod"
+}
 
 variable "disk_threshold_percent" {
-description = "Minimum free space percentage before alert triggers"
-type = number
-default = 10
+  description = "Threshold percentage for low disk alert."
+  type        = number
+  default     = 10
 }
 
-
 variable "law_retention_days" {
-description = "Retention period for Log Analytics Workspace"
-type = number
-default = 30
+  description = "Retention period for Log Analytics Workspace data."
+  type        = number
+  default     = 30
 }
