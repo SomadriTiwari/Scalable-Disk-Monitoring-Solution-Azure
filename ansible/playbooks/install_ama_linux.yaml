@@ -1,0 +1,28 @@
+---
+- name: Install Azure Monitor Agent on Linux VMs
+hosts: linux
+become: yes
+gather_facts: yes
+
+
+tasks:
+- name: Install AMA on Debian/Ubuntu
+apt:
+name: azuremonitoragent
+state: latest
+update_cache: yes
+when: ansible_os_family == 'Debian'
+
+
+- name: Install AMA on RHEL/CentOS
+yum:
+name: azuremonitoragent
+state: latest
+when: ansible_os_family == 'RedHat'
+
+
+- name: Ensure AMA service is running
+service:
+name: azuremonitoragent
+state: started
+enabled: yes

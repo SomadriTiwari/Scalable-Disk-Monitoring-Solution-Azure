@@ -1,0 +1,49 @@
+---
+- name: Schedule Windows Disk Monitoring Script
+hosts: windows
+gather_facts: no
+
+
+vars:
+script_path: "C:\DiskMetrics\disk_metric_eventlog.ps1"
+task_name: "DiskMetricLogger"
+
+
+tasks:
+- name: Create script directory
+win_file:
+path: "C:\DiskMetrics"
+state: directory
+
+
+- name: Upload disk metric script
+win_copy:
+dest: "{{ script_path }}"
+content: |
+$volumes = Get-WmiObject Win32_LogicalDisk -Filter "DriveType=3"
+foreach ($v in $volumes) {
+$freePercent = [math]::Round(($v.FreeSpace / $v.Size) * 100, 2)
+$msg = "Disk: $($v.DeviceID), Free: $freePercent%"
+Write-EventLog -LogName Application -Source "DiskMonitor" -EventId 3001 -EntryType Information -Message $msg
+}
+
+
+- name: Ensure EventLog source exists
+win_command: powershell.exe New-EventLog -LogName Application -Source "DiskMonitor"
+ignore_errors: yes
+
+
+- name: Create scheduled task (every 5 minutes)
+win_scheduled_task:
+name: "{{ task_name }}"
+description: "Log disk free percentage for AMA ingestion"
+actions:
+- path: powershell.exe
+arguments: "-ExecutionPolicy Bypass -File {{ script_path }}"
+triggers:
+- type: time
+repetition:
+interval: PT5M
+username: SYSTEM
+state: present
+enabled: yes

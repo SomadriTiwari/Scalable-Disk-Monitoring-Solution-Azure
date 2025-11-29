@@ -1,0 +1,22 @@
+This playbook associates VMs with the DCR created in Terraform.
+```yaml
+---
+- name: Associate VM to Disk Monitoring DCR
+hosts: all
+gather_facts: no
+
+
+vars:
+dcr_id: "{{ lookup('env','DCR_ID') }}"
+
+
+tasks:
+- name: Run Azure CLI DCR association
+command: >
+az monitor data-collection rule association create
+--name disk-dcr-assoc
+--rule-id {{ dcr_id }}
+--resource {{ ansible_host_resource_id }}
+delegate_to: localhost
+
+---

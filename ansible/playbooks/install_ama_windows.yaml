@@ -1,0 +1,29 @@
+---
+- name: Install Azure Monitor Agent on Windows VMs
+hosts: windows
+gather_facts: no
+
+
+tasks:
+- name: Create temp directory
+win_file:
+path: C:\Temp
+state: directory
+
+
+- name: Download Azure Monitor Agent MSI
+win_get_url:
+url: https://aka.ms/InstallAzureMonitorAgentWindows
+dest: C:\Temp\InstallAMA.msi
+
+
+- name: Install Azure Monitor Agent
+win_package:
+path: C:\Temp\InstallAMA.msi
+state: present
+
+
+- name: Validate AMA service
+win_service:
+name: AzureMonitorWindowsAgent
+state: started
