@@ -1,255 +1,200 @@
-# 🚀 Scalable Azure Disk Monitoring Solution (Multi-Subscription, Windows + Linux)
+# Scalable Azure Disk Monitoring Solution 
 
-A reusable, enterprise-grade monitoring solution for **Azure Virtual Machines** across **multiple subscriptions**, automated using **Terraform + Ansible**, with **private ingestion** via Azure Monitor Private Link.
+A fully **secure**, **cost‑optimized**, and **multi‑subscription scalable** disk monitoring solution leveraging:
+- **Azure Monitor Agent (AMA)**
+- **Log Analytics Workspace (LAW)**
+- **Data Collection Rule (DCR)**
+- **Azure Monitor Private Link Scope (AMPLS)**
+- **Private Endpoint + Private DNS Zone**
+- **Ansible automation** for onboarding VMs
+- **Scheduled disk scripts** for Windows & Linux
+- **Terraform IaC** for deployment
 
-This solution enables organizations to:
+This README clearly details the **design**, **architecture**, **reasoning**, **steps**, and **artifacts**.
 
-- ✔ Monitor disk utilization across all VMs  
-- ✔ Enforce private ingestion (AMPLS + Private Endpoint)  
-- ✔ Standardize Windows & Linux disk metrics  
-- ✔ Trigger alerts when disk space is low  
-- ✔ Automate onboarding using Ansible  
-- ✔ Scale across any number of subscriptions  
-
----
-
-## 🎯 Objective
-
-To provide a **simple, cost-optimized, secure, and scalable** disk monitoring solution that works across:
-
-- Multiple Azure Subscriptions  
-- Multiple VNets  
-- Windows & Linux VMs  
-- Hub-and-Spoke or Flat Networks  
-
-The goal is early detection of **low disk space** to prevent outages.
+# 🎯 Objective
+Build a **scalable, secure, automated disk‑monitoring solution** for Azure VMs (Linux & Windows) that:
+1. Uses AMA (Azure Monitor Agent) with a custom DCR for disk metrics
+2. Sends telemetry securely via **Private Link (AMPLS)**
+3. Triggers alerts when free disk % falls below a threshold
+4. Uses Ansible to automate VM onboarding
+5. Schedules local disk scripts to generate metrics for ingestion
+6. Supports multi‑subscription environments
 
 ---
+# 🧩 Solution Overview (High-Level)
+The solution uses **centralized monitoring** deployed in a **Hub Subscription** while VMs live across multiple **their separate Subscriptions**.
 
-## 🧩 High-Level Architecture
+### 🔐 Security-by-Design
+✔ AMA traffic flows **privately** to Azure Monitor through AMPLS  
+✔ All monitoring components stay inside the customer VNet  
+✔ No public endpoints required  
+✔ DCR used to standardize disk metrics
 
-Architecture diagram is located at:
+### 📡 Scalable Multi-Subscription Monitoring
+- Terraform deploys Log Analytics Workspace (LAW), DCR, AMPLS, PE, DNS
+- Ansible discovers VMs dynamically across Azure subscriptions
+- Azure Policy automatically onboards new VMs into monitoring
 
+### 📊 Disk Metric Strategy
+Windows & Linux VMs:
+- Write periodic disk information to **Event Log (Windows)** or **Syslog (Linux)**
+- AMA collects metrics using DCR performance counters
+- Metrics flow to Log Analytics Workspace (LAW)
+
+### Alerting
+A Scheduled Query Alert analyzes InsightsMetrics and triggers when disk free % < threshold.
+
+---
+# 🏗 Architecture Diagram
+See `architecture.png` in the repository root.
+
+The architecture implements these steps:
+1. **VMs (Linux/Windows)** across subscriptions run disk scripts + AMA
+2. **Ansible** installs AMA and schedules scripts
+3. **Terraform (Hub Subscription)** deploys:
+   - Log Analytics Workspace (LAW)
+   - AMPLS
+   - Private DNS Zone
+   - Private Endpoint
+   - DCR
+   - Query-based Disk Alert
+4. AMA sends logs **privately** to LAW via AMPLS
+5. Alerts fire and notify via Action Groups
+6. Azure Policy auto-enrolls future VMs
+
+---
+# 📁 Repository Structure
 ```
-architecture.png
-
-```
-
-### 🔹 Architecture Steps (as shown in the diagram)
-
-#### **Step 1 — VM Layer (Multi-Subscription)**  
-- Azure VMs in different subscriptions  
-- AMA (Azure Monitor Agent) installed via Ansible  
-- Managed Identity enabled  
-- Disk metrics collected from Windows & Linux  
-- Metrics sent via Private Endpoint  
-
-#### **Step 2 — Hub Monitoring Plane (Hub Subscription)**  
-- Log Analytics Workspace (LAW)  
-- Azure Monitor Private Link Scope (AMPLS)  
-- Private Endpoint for Monitor Ingestion  
-- Private DNS Zone (`privatelink.monitor.azure.com`)  
-- All ingestion is private-only  
-
-#### **Step 3 — Rules & Alerts**  
-- Data Collection Rule (DCR) collects disk metrics  
-- Scheduled Query Alert checks low disk %  
-- Action Group notifies via Email / Teams / Webhook  
-- Terraform deploys monitoring infra  
-- Ansible installs AMA & onboards VMs  
-
----
-
-## 🧱 Components
-
-| Component | Purpose |
-|----------|---------|
-| Log Analytics Workspace | Stores disk metrics |
-| AMPLS | Controls private ingestion |
-| Private Endpoint | Secures ingestion path |
-| Private DNS Zone | Resolves Monitor endpoints privately |
-| DCR | Collects FreeSpaceMB, FreeSpacePercent |
-| Scheduled Query Alert | Fires on low disk percentage |
-| Action Group | Notification channel |
-| Ansible | Installs AMA and enables MI |
-| Terraform | Automates all monitoring resources |
-
----
-
-## 📦 Repository Structure
-
-```plaintext
-Scalable-Azure-Disk-Monitoring/
+Scalable-Disk-Monitoring-Solution-Azure/
+├── README.md
 ├── architecture.png
 │
 ├── terraform/
 │   ├── main.tf
 │   ├── variables.tf
-│   ├── outputs.tf
 │   ├── terraform.tfvars.example
-│   └── modules/
-│       ├── log_analytics/
-│       ├── ampls/
-│       ├── private_endpoint/
-│       ├── dns_zone/
-│       ├── dcr_disk_metrics/
-│       ├── alert_low_disk/
-│       └── role_assignments/
+│   ├── outputs.tf
+│   └── versions.tf
 │
-└── ansible/
-    ├── install_ama_windows.yml
-    ├── install_ama_linux.yml
-    ├── roles/
-    │   └── ama/
-    │       └── tasks/main.yml
-    └── inventory/
-        └── hosts.ini
+├── ansible/
+│   └── playbooks/
+│       ├── install_ama_linux.yaml
+│       ├── install_ama_windows.yaml
+│       ├── schedule_linux_disk_script.yaml
+│       ├── schedule_windows_disk_script.yaml
+│       ├── associate_dcr.yaml
+│
+├── scripts/
+|   |--discover_vms_to_ansible.sh
+│   ├── windows/disk_metric_eventlog.ps1
+│   └── linux/disk_metrics.sh
+|    
+│
+├── policy/
+│   └── ama_dcr_autoonboarding.json
+│
+└── .github/workflows/ci-cd.yml
 ```
 
 ---
+# 🧱 Terraform (Infrastructure-as-Code)
+Terraform deploys **all core monitoring components** into a single monitoring subscription.
 
-## ⚙️ Deployment Guide
+### ✔ Deploys
+- Log Analytics Workspace (LAW)
+- Azure Monitor Private Link Scope (AMPLS)
+- Private Endpoint for Azure Monitor ingestion
+- Private DNS Zone for privatelink.monitor.azure.com
+- Data Collection Rule (DCR)
+- Alert Rule for Low Disk Space
+- Action Group (Email)
 
-### **1️⃣ Deploy Monitoring Infrastructure Using Terraform**
-
-#### Authenticate
-
-```bash
-az login
-az account set --subscription <hub_subscription_id>
+### 📌 Deployment Steps
 ```
-
-#### Update terraform.tfvars
-
-```hcl
-location = "eastus"
-hub_subscription_id = "xxxx-xxxx"
-hub_resource_group  = "rg-hub-monitoring"
-
-subscriptions = [
-  {
-    id      = "sub-a-id"
-    vnet_id = "/subscriptions/.../vnets/vnet-a"
-  },
-  {
-    id      = "sub-b-id"
-    vnet_id = "/subscriptions/.../vnets/vnet-b"
-  }
-]
-```
-
-#### Deploy Infrastructure
-
-```bash
 cd terraform
+cp terraform.tfvars.example terraform.tfvars
 terraform init
+terraform validate
+terraform plan
 terraform apply -auto-approve
 ```
 
-This creates:
+---
+# 🔧 Ansible Automation
+Ansible handles **all VM-side work**, including installing AMA and setting up scheduled disk scripts.
 
-- LAW  
-- AMPLS  
-- Private Endpoint  
-- Private DNS Zone  
-- Disk Metrics DCR  
-- Alert Rule  
-- Action Group  
+### ✔ Install AMA on Windows
+```
+ansible-playbook -i inventory/hosts.ini ansible/playbooks/install_ama_windows.yaml
+```
+
+### ✔ Install AMA on Linux
+```
+ansible-playbook -i inventory/hosts.ini ansible/playbooks/install_ama_linux.yaml
+```
+
+### ✔ Schedule Disk Scripts (Windows)
+```
+ansible-playbook -i inventory/hosts.ini ansible/playbooks/schedule_windows_disk_script.yaml
+```
+
+### ✔ Schedule Disk Scripts (Linux)
+```
+ansible-playbook -i inventory/hosts.ini ansible/playbooks/schedule_linux_disk_script.yaml
+```
+
+### ✔ Associate VMs with DCR
+```
+ansible-playbook -i inventory/hosts.ini ansible/playbooks/associate_dcr.yaml
+```
 
 ---
+# 📝 Scripts for Disk Metrics
+### Windows
+`scripts/windows/disk_metric_eventlog.ps1`  
+Uses EventLog to write free-disk percentage every 5 minutes.
 
-## 🛠️ 2️⃣ Onboard VMs Using Ansible
+### Linux
+`scripts/linux/disk_metrics.sh`  
+Writes disk free % to syslog.
 
-### Add VM Private IPs
-
-Edit:
-
-```
-ansible/inventory/hosts.ini
-```
-
-Example:
-
-```ini
-[windows]
-10.10.1.4
-
-[linux]
-10.20.3.7
-```
-
-### Install AMA on Windows
-
-```bash
-ansible-playbook ansible/install_ama_windows.yml -i ansible/inventory/hosts.ini
-```
-
-### Install AMA on Linux
-
-```bash
-ansible-playbook ansible/install_ama_linux.yml -i ansible/inventory/hosts.ini
-```
-
-This installs AMA, enables Managed Identity, and associates VM with the DCR.
+These get executed via Ansible’s scheduled tasks/cron jobs.
 
 ---
-
-## 🔍 Validation
-
-### AMA Status
-
-Windows:
-
-```powershell
-Get-Service HealthService
+# 🔎 VM Discovery Automation (Azure → Ansible)
+To discover all VMs across subscriptions:
 ```
-
-Linux:
-
-```bash
-systemctl status azuremonitoragent
+./scripts/discover_vms_to_ansible.sh
 ```
+This generates a complete `hosts.ini` automatically.
 
-### Verify Disk Metrics in Log Analytics
 
-```kql
-InsightsMetrics
-| where Namespace == "LogicalDisk"
-| where Name in ("Free Megabytes", "Free Space Percentage")
-| take 10
+## Azure Workbook (Disk Monitoring Dashboard)
+Azure Monitor Workbooks can be used to visualize disk usage trends, low disk space, and VM metrics.
+We can create a workbook in Azure Portal using queries such as:
+- `InsightsMetrics` for disk free %
+- `Perf` for additional counters
+ Azure Workbook (Dashboard)
+Import dashboard JSON into Azure Monitor Workbooks:
 ```
-
-### Validate Alert
-
-- Reduce disk space  
-- Alert triggers  
-- Action Group notifies team  
+workbooks/disk-monitor-workbook.json
+```
+Provides:
+- Lowest free-disk VMs
+- Trends over time
+- Tables and time charts
 
 ---
+# ⚙️ CI/CD Pipeline (GitHub Actions)
+The workflow automatically:
+- Runs Terraform formatting, validation, plan
+- Allows manual apply
+- It runs Ansible as well to combine the solution and make it 
 
-## 🧭 Customer Onboarding Summary
+File:
+```
+.github/workflows/ci-cd.yml
+```
 
-1. Clone repo  
-2. Edit `terraform.tfvars`  
-3. Run Terraform  
-4. Add VM IPs to Ansible inventory  
-5. Run Ansible playbook  
-6. Validate ingestion + alerting  
 
-To onboard new VMs later:
-
-**Add IP → run Ansible → done.**
-
----
-
-## 🏁 Summary
-
-This solution is:
-
-- 🔐 Secure (Private Link + Managed Identity)  
-- ⚙️ Automated (Terraform + Ansible)  
-- 🔄 Scalable (multi-subscription)  
-- 💰 Cost-optimized (single AMPLS + PE)  
-- 🧪 Fully tested end-to-end  
-
-A production-ready Azure disk monitoring framework built for enterprise scale.
