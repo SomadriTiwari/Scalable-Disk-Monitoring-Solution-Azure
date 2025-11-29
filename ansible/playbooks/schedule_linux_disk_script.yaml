@@ -1,30 +1,23 @@
 ---
 - name: Schedule Linux Disk Monitoring Script
-hosts: linux
-become: yes
-gather_facts: yes
+  hosts: linux
+  become: yes
+  gather_facts: yes
 
+  vars:
+    script_src: "../../scripts/linux/disk_metrics.sh"
+    script_dest: "/opt/disk_metrics.sh"
 
-vars:
-script_path: "/opt/disk_metrics.sh"
+  tasks:
+    - name: Upload disk metrics script
+      copy:
+        src: "{{ script_src }}"
+        dest: "{{ script_dest }}"
+        mode: "0755"
 
-
-tasks:
-- name: Upload disk logging script
-copy:
-dest: "{{ script_path }}"
-mode: "0755"
-content: |
-#!/bin/bash
-for mount in $(df -h | awk 'NR>1{print $6}'); do
-free_pct=$(df -h | awk -v m="$mount" '$6==m {print $5}' | sed 's/%//')
-logger -t diskmon "Mount: $mount Free: ${free_pct}%"
-done
-
-
-- name: Create cron job (every 5 minutes)
-cron:
-name: "Disk Metric Logger"
-job: "{{ script_path }}"
-minute: "*/5"
-state: present
+    - name: Create cron job
+      cron:
+        name: "Disk Metrics Logger"
+        job: "{{ script_dest }}"
+        minute: "*/5"
+        state: present
