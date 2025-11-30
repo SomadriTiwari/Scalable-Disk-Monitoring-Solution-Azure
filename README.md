@@ -45,6 +45,42 @@ Windows & Linux VMs:
 ### Alerting
 A Scheduled Query Alert analyzes InsightsMetrics and triggers when disk free % < threshold.
 
+# Assumptions
+This solution is designed with the following assumptions to ensure clarity, consistency, and smooth deployment across diverse Azure environments:
+
+
+### ✅ Subscription & Networking Assumptions
+- You already know **which Azure Subscriptions** contain the workload VMs.
+- All workload VMs (Linux/Windows) are already deployed in their respective **Virtual Networks**.
+- Hub-and-spoke or centralized networking architecture exists, where:
+- A **Hub VNet** is available for placing the Private Endpoint for Azure Monitor.
+- Spoke VNets are **peered** to the hub (required for Private Link resolution).
+- DNS resolution is configured or will be configured via Terraform (Private DNS Zone linking).
+
+
+### ✅ Terraform Variable Assumptions
+- `hub_vnet_id` and `hub_subnet_id` values are **manually collected** and updated inside `terraform.tfvars`.
+- `resource_group_name` and `location` refer to the **central monitoring RG**, not workload RGs.
+- The user has access to create resources in the specified RG.
+
+
+### ✅ VM & Agent Assumptions
+- VMs already have outbound connectivity to install AMA via Ansible.
+- VMs have System-Assigned Managed Identity enabled (or will be enabled before DCR association).
+- Windows VMs allow WinRM / Linux VMs allow SSH for Ansible connectivity.
+
+
+### ✅ Identity & RBAC Assumptions
+- The Service Principal used by Terraform and Ansible is created ahead of time.
+- Required RBAC roles (Contributor, Network Contributor, Monitoring Contributor, Reader) are assigned before running automation.
+- GitHub Actions secrets are populated correctly from the created Service Principal.
+
+
+### ✅ Operational Assumptions
+- VM inventory will be discovered manually or via automated script (e.g., `discover_vms_to_ansible.sh`).
+- Users will populate the Ansible inventory (`hosts.ini`) with VM IPs or FQDNs before running playbooks.
+- Workload subscriptions are accessible from the account executing Terraform/Ansible.
+
 ---
 # 🏗 Architecture Diagram
 See `architecture.png` in the repository root.
